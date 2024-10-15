@@ -20,4 +20,4 @@ WoR.R:                         Generates the simulated data for Section 4.2 and 
 
 futility.R:                    Generates the simulated data for Section 5 and saves it in the file "futility.rda" in the results folder.
 
-plot_generator.R               Uses the simulated data in the results folder to create all plots of the paper and save them in the results folder.
+plot_generator.R:               Uses the simulated data in the results folder to create all plots of the paper and save them in the results folder.
