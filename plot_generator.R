@@ -173,15 +173,17 @@ p1=ggplot(results_df, aes(idx)) +
   theme(panel.background = element_blank(),panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=1), 
-        axis.title.y = element_text(size=15), axis.title.x = element_text(size=15),
+        axis.title.y = element_text(size=15), axis.title.x = element_text(size=15), 
         legend.text=element_text(size=15), legend.title=element_text(size=15)) 
 
 #save the plot
 ggsave("results/Plot_WoR.pdf", plot=p1, width=10, height=4)
 
 
-###Figure 4 (Inkl. stop for futility)
+###Figure 5 (inkl. stop for futility)
 
+lab=c("Boosted","SPRT") 
+col=c( "cornflowerblue", "limegreen")
 
 #load the data
 load("results/futility.rda")
@@ -203,18 +205,18 @@ p1=ggplot(results_df, aes(idx)) +
   geom_line(aes(y = mean_stop_sprt, colour = "2", linetype = "3")) +
   geom_point(aes(y = mean_stop_sprt, colour = "2")) +
   geom_text(aes(y = (mean_stop_boosted + mean_stop_sprt) / 2, label = sprintf("%.1f%%", percent_diff)), 
-            size = 3, nudge_x=0.01, nudge_y=4) +
+            size = 4, nudge_x=0.01, nudge_y=4) +
   scale_linetype_manual(guide="none", values = c("3"="solid","4"="dashed","5"="dotted"))+
   scale_colour_manual(name="Test", values=c( "1"=col[1], "2"=col[2]), 
                       labels=c("1"=lab[1], "2"=lab[2]))+
   xlab(expression(beta))+
-  ylab("Number of samples till decision")+
+  ylab("Numb. of samples till decision")+
   scale_x_continuous(breaks = betas, limits=c(0, max(betas)+0.03), expand = c(0, 0)) +
   scale_y_continuous(breaks = seq(0, 100, 10), limits=c(0, max_val+10), expand = c(0, 0)) +
   theme(panel.background = element_blank(),panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=1), 
-        axis.title.y = element_text(size=15), axis.title.x = element_text(size=15),
+        axis.title.y = element_text(size=15), axis.title.x = element_text(size=15), axis.text=element_text(size=10),
         legend.text=element_text(size=15), legend.title=element_text(size=15)) 
 
 #Calculate difference between type II error probability in percent
@@ -224,7 +226,7 @@ p2=ggplot(results_df, aes(idx)) +
   geom_line(aes(y = 1-power_sprt, colour = "2", linetype = "3")) +
   geom_point(aes(y = 1-power_sprt, colour = "2")) +
   geom_text(aes(y = (2-power_boosted - power_sprt) / 2, label = sprintf("%.1f%%", percent_diff_power)), 
-            size = 3, nudge_x=0.007, nudge_y=0.03) +
+            size = 4, nudge_x=0.007, nudge_y=0.03) +
   scale_linetype_manual(guide="none", values = c("3"="solid","4"="dashed","5"="dotted"))+
   scale_colour_manual(name="Test", values=c( "1"=col[1], "2"=col[2]), 
                       labels=c("1"=lab[1], "2"=lab[2]))+
@@ -235,11 +237,31 @@ p2=ggplot(results_df, aes(idx)) +
   theme(panel.background = element_blank(),panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=1), 
-        axis.title.y = element_text(size=15), axis.title.x = element_text(size=15),
+        axis.title.y = element_text(size=15), axis.title.x = element_text(size=15), axis.text=element_text(size=10),
         legend.text=element_text(size=15), legend.title=element_text(size=15)) 
 
-combined = p1 + p2  & theme(legend.position = "bottom")
+#Plot for the mean type I error
+p3=ggplot(results_df, aes(idx)) + 
+  geom_line(aes(y = mean_type_I_boosted, colour = "1", linetype="3")) +
+  geom_point(aes(y = mean_type_I_boosted, colour = "1")) +
+  geom_line(aes(y = mean_type_I_sprt, colour = "2", linetype = "3")) +
+  geom_point(aes(y = mean_type_I_sprt, colour = "2")) +
+  scale_linetype_manual(guide="none", values = c("3"="solid","4"="dashed","5"="dotted"))+
+  scale_colour_manual(name="Test", values=c( "1"=col[1], "2"=col[2]), 
+                      labels=c("1"=lab[1], "2"=lab[2]))+
+  xlab(expression(beta))+
+  ylab("Type I error probability")+
+  scale_x_continuous(breaks = betas, limits=c(0, max(betas)+0.01), expand = c(0, 0)) +
+  scale_y_continuous(breaks = seq(0, 0.06, 0.01), limits=c(0, 0.06), expand = c(0, 0)) +
+  theme(panel.background = element_blank(),panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=1), 
+        axis.title.y = element_text(size=15), axis.title.x = element_text(size=15), axis.text=element_text(size=10),
+        legend.text=element_text(size=15), legend.title=element_text(size=15)) 
+
+
+combined = p1 + p2 + p3 & theme(legend.position = "bottom")
 combined = combined + plot_layout(guides = "collect")
 
 #save the plot
-ggsave("results/Plot_futility.pdf", plot=combined, width=12, height=4.5)
+ggsave("results/Plot_futility.pdf", plot=combined, width=15, height=4.5)
