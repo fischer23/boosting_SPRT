@@ -17,6 +17,8 @@ mean_stop_sprt=rep(0,length(betas))
 mean_stop_boosted=rep(0,length(betas))
 power_sprt=rep(0,length(betas))
 power_boosted=rep(0,length(betas))
+mean_type_I_sprt=rep(0,length(betas))
+mean_type_I_boosted=rep(0,length(betas))
 
 #Set seed for reproducibility
 set.seed(123)
@@ -24,11 +26,13 @@ set.seed(123)
 count=1
 for(beta in betas){
   
-  stop_sprt=rep(n,m)          #Stopping times for a specific mu_A
-  stop_boosted=rep(n,m)       #Stopping times for a specific mu_A
-  decision_sprt=rep(0,m)      #decisions for a specific mu_A
-  decision_boosted=rep(0,m)   #decisions for a specific mu_A
-
+  stop_sprt=rep(n,m)          #Stopping times for a specific beta
+  stop_boosted=rep(n,m)       #Stopping times for a specific beta
+  decision_sprt=rep(0,m)      #decisions for a specific beta
+  decision_boosted=rep(0,m)   #decisions for a specific beta
+  type_I_sprt=rep(0,m)        #Type I errors for a specific beta
+  type_I_boosted=rep(0,m)     #Type I errors for a specific beta
+  
   for(j in 1:m){
     
     data=rnorm(n,mean=mu_A,sd=1)                #Create normally distributed data with mean mu_A and variance 1
@@ -59,16 +63,21 @@ for(beta in betas){
       m_t=1/(alpha*prod(lr_boosted[1:i]))
       l_t=min(beta/((1-alpha)*prod(lr_boosted[1:i]))*prod(b[1:i])*b[i], m_t)
     }
-
+    #Calculate the estimate for the type I error in each trial
+    type_I_sprt[j]=(1/prod(lr[1:stop_sprt[j]]))*decision_sprt[j]
+    type_I_boosted[j]=(1/prod(lr[1:stop_boosted[j]]))*decision_boosted[j]
   }
   #Save the mean power and stops for each mu_A
   power_boosted[count]=mean(decision_boosted)
   power_sprt[count]=mean(decision_sprt)
   mean_stop_boosted[count]=mean(stop_boosted)
   mean_stop_sprt[count]=mean(stop_sprt)
+  mean_type_I_boosted[count]=mean(type_I_boosted)
+  mean_type_I_sprt[count]=mean(type_I_sprt)
   count=count+1
 }
 
 #Save the results
-results_df=data.frame(idx=betas, mean_stop_boosted, mean_stop_sprt, power_boosted, power_sprt)
+results_df=data.frame(idx=betas, mean_stop_boosted, mean_stop_sprt, power_boosted, power_sprt, 
+                      mean_type_I_boosted, mean_type_I_sprt)
 save(results_df, file="results/futility.rda")
