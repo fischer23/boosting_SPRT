@@ -61,7 +61,7 @@ for(beta in betas){
       }
       #Calculate m_t and l_t (used for boosting)
       m_t=1/(alpha*prod(lr_boosted[1:i]))
-      l_t=min(beta/((1-alpha)*prod(lr_boosted[1:i]))*prod(b[1:i])*b[i], m_t)
+      l_t=min(beta/((1-alpha)*prod(lr_boosted[1:i]))*prod(b[1:i]), m_t)
     }
     #Calculate the estimate for the type I error in each trial
     type_I_sprt[j]=(1/prod(lr[1:stop_sprt[j]]))*decision_sprt[j]
