@@ -45,7 +45,7 @@ for(beta in betas){
     
     #Boosted SPRT
     m_t=1/alpha                     #Used for boosting (upper cutoff)
-    l_t=beta/(1-alpha)              #Used for boosting (lower cutoff)
+    l_t=beta                        #Used for boosting (lower cutoff)
     b=rep(1,n)                      #boosting factors
     lr_boosted=lr                   #initialize boosted likelihood ratio
     for(i in 1:n){
@@ -61,7 +61,7 @@ for(beta in betas){
       }
       #Calculate m_t and l_t (used for boosting)
       m_t=1/(alpha*prod(lr_boosted[1:i]))
-      l_t=min(beta/((1-alpha)*prod(lr_boosted[1:i]))*prod(b[1:i]), m_t)
+      l_t=min(beta/(prod(lr_boosted[1:i]))*prod(b[1:i]), m_t)
     }
     #Calculate the estimate for the type I error in each trial
     type_I_sprt[j]=(1/prod(lr[1:stop_sprt[j]]))*decision_sprt[j]
