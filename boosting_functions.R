@@ -31,7 +31,7 @@ e_boosted_calib=function(m_t, kappa){
 }
 
 
-###Function to compute boosting factors for Gaussian testing problems with stop for futility.
+###Function to compute boosting factors for Gaussian testing problems with predefined stop for futility \nu_t.
 ##Input:
 #m_t:           cutoff value >=1 for the truncation function (m_t=1/(M*\alpha)).  
 #delta:         Real parameter used for boosting the martingale factors. In case of the simple null H_i:X_i~N(mu_N,1)
@@ -46,4 +46,38 @@ e_boosted_futility=function(m_t, l_t, delta){
     return(b*(pnorm(delta/2-log(l_t/b)/delta)-pnorm(delta/2-log(m_t/b)/delta))+m_t*(1-pnorm((log(m_t/b)+delta^2/2)/delta))-1)
   }
   return(uniroot(b_factor, lower=0, upper=100000000000)$root)
+}
+
+
+###Function to compute boosting factors and inverse boosting factors for Gaussian testing problems with desired type II error control.
+##Input:
+#LR:            Current value of the boosted likelihood ratio process.  
+#LR_inv:        Current value of the boosted invers likelihood ratio process.  
+#b_past:        Product of all previous boosting factors
+#b_inv_past:    Product of all previous inverse boosting factors
+#alpha:         Desired type I error probability
+#beta:          Desired type II error probability
+#delta:         Real parameter used for boosting the martingale factors. In case of the simple null H_i:X_i~N(mu_N,1)
+#               vs. alternative H_i^A:X_i~N(mu_A,1) delta should be set to delta=mu_A-mu_N.
+#delta_inv:     Real parameter used for boosting the inverse martingale factors. In case of the simple null H_i:X_i~N(mu_N,1)
+#               vs. alternative H_i^A:X_i~N(mu_A,1) delta_inv should be set to delta_inv=mu_N-mu_A.
+
+###Output:      3-dimensional vector containing the boosting factor, the inverse boosting factor and the stop for futility \nu_t.
+
+e_boosted_type2=function(LR, LR_inv, b_past, b_inv_past, alpha, beta, delta, delta_inv){
+  #Function b_factor evaluates the equation system for given boosting and inverse boosting factor.
+  b_factor=function(b_full){
+    b_inv=b_full[2]
+    b=b_full[1]
+    
+    return(c(b*(pnorm(delta/2-log(min(beta*b_inv*b_inv_past*b_past*b,1/alpha)/(b*LR))/delta)-pnorm(delta/2-log(1/(alpha*LR*b))/delta))+1/(alpha*LR)*(1-pnorm((log(1/(alpha*LR*b))+delta^2/2)/delta))-1,
+             b_inv*(pnorm(delta_inv/2-log(1/(beta*LR_inv*b_inv))/delta_inv)-pnorm(delta_inv/2-log(min(alpha*b*b_past*b_inv_past*b_inv,1/beta)/(b_inv*LR_inv))/delta_inv))+1/(beta*LR_inv)*(pnorm((log(1/(beta*LR_inv*b_inv))+delta_inv^2/2)/delta_inv))-1))
+  }
+  tryCatch({
+    result=nleqslv(c(1,1), b_factor, method="Newton")$x
+    return(c(result, beta*b_past*b_inv_past*result[1]*result[2]))   #Return result if no error occurs
+  }, error = function(e) {
+    result=e_boosted_futility(1/(alpha*LR), 1/(alpha*LR),delta)     #If error occurs set \nu_t=1/\alpha and solve the single equation. 
+    return(c(result, 1, 1/alpha))  
+  })
 }

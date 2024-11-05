@@ -1,6 +1,9 @@
 #This file runs the simulations shown in Section 5 of the paper 
 #"Improving the (approximate) sequential probability ratio test by avoiding overshoot"
 
+library(nleqslv)
+library(BB)
+
 #Load the boosting functions
 source("boosting_functions.R")
 
@@ -19,13 +22,13 @@ power_sprt=rep(0,length(betas))
 power_boosted=rep(0,length(betas))
 mean_type_I_sprt=rep(0,length(betas))
 mean_type_I_boosted=rep(0,length(betas))
-
+options(warn=2)
 #Set seed for reproducibility
 set.seed(123)
 
 count=1
 for(beta in betas){
-  
+
   stop_sprt=rep(n,m)          #Stopping times for a specific beta
   stop_boosted=rep(n,m)       #Stopping times for a specific beta
   decision_sprt=rep(0,m)      #decisions for a specific beta
@@ -34,7 +37,7 @@ for(beta in betas){
   type_I_boosted=rep(0,m)     #Type I errors for a specific beta
   
   for(j in 1:m){
-    
+
     data=rnorm(n,mean=mu_A,sd=1)                #Create normally distributed data with mean mu_A and variance 1
     
     #SPRT
@@ -44,24 +47,34 @@ for(beta in betas){
     decision_sprt[j]=(LR[stop_sprt[j]]>=(1-beta)/alpha)                         #Calculate decision for SPRT
     
     #Boosted SPRT
-    m_t=1/alpha                     #Used for boosting (upper cutoff)
-    l_t=beta                        #Used for boosting (lower cutoff)
     b=rep(1,n)                      #boosting factors
-    lr_boosted=lr                   #initialize boosted likelihood ratio
+    lr_boosted=lr 
+    lr_inv=1/lr
+    lr_inv_boosted=lr_inv
+    b_inv=rep(1,n) 
+    nu_t=beta
+    
     for(i in 1:n){
-      #Calculate boosting factor and boosted likelihood ratio
-      b[i]=e_boosted_futility(m_t, l_t, mu_A) 
+      
+      #Calculate the boosting factors
+      b_full=e_boosted_type2(prod(lr_boosted[1:(i-1)]), prod(lr_inv_boosted[1:(i-1)]), prod(b[1:(i-1)]), prod(b_inv[1:(i-1)]), alpha, beta, mu_A, -mu_A)
+      
+      b_inv[i]=b_full[2]
+      b[i]=b_full[1]
+      nu_t=b_full[3]
+      
+      #Calculate boosted LR and boosted inverse LR
+      lr_inv_boosted[i]=b_inv[i]*lr_inv_boosted[i]
       lr_boosted[i]=b[i]*lr_boosted[i]
       
+      
       #Set stopping time and decision for boosted SPRT
-      if(lr_boosted[i]>=m_t|lr_boosted[i]<=l_t){
+      if(prod(lr_boosted[1:i])>=(1/alpha)|prod(lr_boosted[1:i])<=nu_t){
         stop_boosted[j]=i
-        decision_boosted[j]=(prod(lr_boosted[1:i])>=1/alpha)
+        decision_boosted[j]=(prod(lr_boosted[1:i])>=(1/alpha))
         break
       }
-      #Calculate m_t and l_t (used for boosting)
-      m_t=1/(alpha*prod(lr_boosted[1:i]))
-      l_t=min(beta/(prod(lr_boosted[1:i]))*prod(b[1:i]), m_t)
+  
     }
     #Calculate the estimate for the type I error in each trial
     type_I_sprt[j]=(1/prod(lr[1:stop_sprt[j]]))*decision_sprt[j]
@@ -81,3 +94,5 @@ for(beta in betas){
 results_df=data.frame(idx=betas, mean_stop_boosted, mean_stop_sprt, power_boosted, power_sprt, 
                       mean_type_I_boosted, mean_type_I_sprt)
 save(results_df, file="results/futility.rda")
+
+

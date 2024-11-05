@@ -51,7 +51,7 @@ for(mu_A in mus){
       #Calculate m_t (used for boosting)
       m_t=1/(alpha*prod(lr_boosted[1:i]))
       #Calculate estimate for mu
-      mu_A_pred=max(mu_N, mean(data[1:i]))
+      mu_A_pred=max(mu_N, (sum(data[1:i])+mu_N)/i)
       
       #Set stopping times and decisions
       if(prod(lr_boosted[1:i])>=1/alpha & stop_boosted[j]==n){
