@@ -1,4 +1,4 @@
-#This file runs the simulations shown in Section 4.1 of the paper 
+#This file runs the simulations shown in Section S.1 of the paper 
 #"Improving the (approximate) sequential probability ratio test by avoiding overshoot"
 
 #Load the boosting functions

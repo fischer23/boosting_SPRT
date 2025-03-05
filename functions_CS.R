@@ -1,4 +1,4 @@
-#This file contains auxiliary functions for calculating a boosted CS as described in Section 4.1 of the paper 
+#This file contains auxiliary functions for calculating a boosted CS as described in Section S.1 of the paper 
 #"Improving the (approximate) sequential probability ratio test by avoiding overshoot"
 
 ###Auxiliary function for the construction of boosted CSs.

@@ -65,19 +65,23 @@ e_boosted_futility=function(m_t, l_t, delta){
 ###Output:      3-dimensional vector containing the boosting factor, the inverse boosting factor and the stop for futility \nu_t.
 
 e_boosted_type2=function(LR, LR_inv, b_past, b_inv_past, alpha, beta, delta, delta_inv){
-  #Function b_factor evaluates the equation system for given boosting and inverse boosting factor.
-  b_factor=function(b_full){
+  obj=function(b_full){
     b_inv=b_full[2]
     b=b_full[1]
-    
+    return(-b-b_inv)
+  }
+
+  ineq_func=function(b_full){
+    b_inv=b_full[2]
+    b=b_full[1]
     return(c(b*(pnorm(delta/2-log(min(beta*b_inv*b_inv_past*b_past*b,1/alpha)/(b*LR))/delta)-pnorm(delta/2-log(1/(alpha*LR*b))/delta))+1/(alpha*LR)*(1-pnorm((log(1/(alpha*LR*b))+delta^2/2)/delta))-1,
              b_inv*(pnorm(delta_inv/2-log(1/(beta*LR_inv*b_inv))/delta_inv)-pnorm(delta_inv/2-log(min(alpha*b*b_past*b_inv_past*b_inv,1/beta)/(b_inv*LR_inv))/delta_inv))+1/(beta*LR_inv)*(pnorm((log(1/(beta*LR_inv*b_inv))+delta_inv^2/2)/delta_inv))-1))
   }
-  tryCatch({
-    result=nleqslv(c(1,1), b_factor, method="Newton")$x
-    return(c(result, beta*b_past*b_inv_past*result[1]*result[2]))   #Return result if no error occurs
-  }, error = function(e) {
-    result=e_boosted_futility(1/(alpha*LR), 1/(alpha*LR),delta)     #If error occurs set \nu_t=1/\alpha and solve the single equation. 
-    return(c(result, 1, 1/alpha))  
-  })
+  result=nloptr::nloptr(x0=c(1,1), eval_f=obj, lb=c(1,1), eval_g_ineq=ineq_func, opts=list("algorithm" = "NLOPT_LN_COBYLA", "xtol_rel" = 1.0e-8, "constraints_ineq" = 1.0e-8))
+  if(max(ineq_func(result$solution))>1e-7 | min(result$solution)<1){
+    result$solution=c(1,1)
+  }
+  return(c(result$solution, min(1/alpha, beta*b_past*b_inv_past*result$solution[1]*result$solution[2])))
 }
+
+
