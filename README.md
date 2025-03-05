@@ -1,6 +1,6 @@
 # boosting_SPRT
 
-This repository contains the R code for reproducing the results in the paper "Improving the (approximate) sequential probability ratio test by avoiding overshoot". In the aforementioned paper, we introduce a general approach to improve test martingale based sequential tests. In particular, we uniformly improve the power-one SPRT with threshold 1/\alpha and propose an alternative to Wald's approximated two-sided thresholds that often needs less samples while providing provable type I error control. 
+This repository contains the R code for reproducing the results in the paper "Improving the (approximate) sequential probability ratio test by avoiding overshoot". In the aforementioned paper, we introduce a general approach to improve test martingale based sequential tests. In particular, we uniformly improve the power-one SPRT with threshold 1/\alpha and propose an alternative to Wald's approximated two-sided thresholds that often needs less samples while providing provable type I and type II error control. 
 
 Files:
 
@@ -20,4 +20,6 @@ WoR.R:                         Generates the simulated data for Section 4.2 and 
 
 futility.R:                    Generates the simulated data that includes a stop for futility and saves it in the file "futility.rda" in the results folder.
 
-plot_generator.R:               Uses the simulated data in the results folder to create all plots of the paper and save them in the results folder.
+plot_generator.R:              Uses the simulated data in the results folder to create all plots of the paper and save them in the results folder.
+
+results folder:                Contains the simulated data and generated plots.
