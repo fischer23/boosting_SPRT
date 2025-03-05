@@ -8,16 +8,16 @@ boosting_functions.R:          Contains the functions for boosting martingale fa
 
 calc_boosting_factors.R:       Calculates the boosting factors reported in the Sections 3.1, 4.3 and 5 of the paper. 
 
-simple.R:                      Generates the simulated data for Section 3.1 and saves it in the file "simple.rda" in the results folder.
+simple.R:                      Generates the simulated data for simple null and alternative hypotheses.
 
 comp_alt.R:                    Generates the simulated data for Section 3.2 and saves it in the file "comp_alt.rda" in the results folder.
 
 functions_CS.R:                Contains auxiliary functions for the computation of boosted confidence sequences.
 
-CS.R:                          Generates the simulated data for Section 4.1 and saves it in the file "CS.rda" in the results folder.
+CS.R:                          Generates the simulated data for Section S.1 and saves it in the file "CS.rda" in the results folder.
 
 WoR.R:                         Generates the simulated data for Section 4.2 and saves it in the file "WoR.rda" in the results folder.
 
-futility.R:                    Generates the simulated data for Section 5 and saves it in the file "futility.rda" in the results folder.
+futility.R:                    Generates the simulated data that includes a stop for futility and saves it in the file "futility.rda" in the results folder.
 
 plot_generator.R:               Uses the simulated data in the results folder to create all plots of the paper and save them in the results folder.
