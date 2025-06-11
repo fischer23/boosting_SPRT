@@ -28,6 +28,7 @@ mean_type_I_sprt <- rep(0, length(betas))
 mean_type_I_sprt_cons <- rep(0, length(betas))
 mean_type_I_sprt_ds <- rep(0, length(betas))
 mean_type_I_boosted <- rep(0, length(betas))
+mean_time_boosted <- rep(0, length(betas))
 
 # Set seed for reproducibility
 set.seed(123)
@@ -46,50 +47,59 @@ for (beta in betas) {
   type_I_sprt_cons <- rep(0, m) # Type I errors for a specific beta (SPRT cons. thresholds)
   type_I_sprt_ds <- rep(0, m) # Type I errors for a specific beta (SPRT Siegmund's thresholds)
   type_I_boosted <- rep(0, m) # Type I errors for a specific beta (boosted SPRT)
+  time_boosted <- rep(n, m) # Duration for a specific beta (boosted SPRT)
 
   for (j in 1:m) {
     data <- rnorm(n, mean = mu_A, sd = 1) # Create normally distributed data with mean mu_A and variance 1
+    
+    time_boosted[j] <- as.numeric(system.time({
+      # calculate likelihood ratio
+      lr <- dnorm(data, mu_A, 1) / dnorm(data, mu_N, 1) # Likelihood ratio
+    
+      # Parameters for boosted SPRT
+      b <- rep(1, n)
+      lr_boosted <- lr
+      lr_inv <- 1 / lr
+      lr_inv_boosted <- lr_inv
+      b_inv <- rep(1, n)
+      nu_t <- beta
 
-    # SPRT
-    lr <- dnorm(data, mu_A, 1) / dnorm(data, mu_N, 1) # Likelihood ratio
+      for (i in 1:n) {
+        # Calculate the boosting factors
+        b_full <- e_boosted_type2(prod(lr_boosted[1:(i - 1)]), prod(lr_inv_boosted[1:(i - 1)]), prod(b[1:(i - 1)]), prod(b_inv[1:(i - 1)]), alpha, beta, mu_A, -mu_A)
+
+        b_inv[i] <- b_full[2]
+        b[i] <- b_full[1]
+        nu_t <- b_full[3]
+
+        # Calculate boosted LR and boosted inverse LR
+        lr_inv_boosted[i] <- b_inv[i] * lr_inv_boosted[i]
+        lr_boosted[i] <- b[i] * lr_boosted[i]
+
+
+        # Set stopping time and decision for boosted SPRT
+        if (prod(lr_boosted[1:i]) >= (1 / alpha) | prod(lr_boosted[1:i]) <= nu_t) {
+          stop_boosted[j] <- i
+          decision_boosted[j] <- (prod(lr_boosted[1:i]) >= (1 / alpha))
+          break
+        }
+      }
+    })[3])
+    
+    # SPRTs
+    
     LR <- cumprod(lr) # Cumulative likelihood ratio
     stop_sprt[j] <- min(c(which(LR >= (1 - beta) / alpha | LR <= (beta) / (1 - alpha)), n)) # Calculate stop for SPRT
     decision_sprt[j] <- (LR[stop_sprt[j]] >= (1 - beta) / alpha) # Calculate decision for SPRT
-
+    
     stop_sprt_cons[j] <- min(c(which(LR >= 1 / alpha | LR <= beta), n)) # Calculate stop for cons. SPRT
     decision_sprt_cons[j] <- (LR[stop_sprt_cons[j]] >= 1 / alpha) # Calculate decision for cons. SPRT
-
+    
     stop_sprt_ds[j] <- min(c(which(LR >= (1 - beta) / (alpha * exp(mu_A * rho)) | LR <= exp(mu_A * rho) * beta / (1 - alpha)), n)) # Calculate stop for Siegmund's SPRT
     decision_sprt_ds[j] <- (LR[stop_sprt_ds[j]] >= (1 - beta) / (alpha * exp(mu_A * rho))) # Calculate decision for Siegmund's SPRT
-
-    # Parameters for boosted SPRT
-    b <- rep(1, n)
-    lr_boosted <- lr
-    lr_inv <- 1 / lr
-    lr_inv_boosted <- lr_inv
-    b_inv <- rep(1, n)
-    nu_t <- beta
-
-    for (i in 1:n) {
-      # Calculate the boosting factors
-      b_full <- e_boosted_type2(prod(lr_boosted[1:(i - 1)]), prod(lr_inv_boosted[1:(i - 1)]), prod(b[1:(i - 1)]), prod(b_inv[1:(i - 1)]), alpha, beta, mu_A, -mu_A)
-
-      b_inv[i] <- b_full[2]
-      b[i] <- b_full[1]
-      nu_t <- b_full[3]
-
-      # Calculate boosted LR and boosted inverse LR
-      lr_inv_boosted[i] <- b_inv[i] * lr_inv_boosted[i]
-      lr_boosted[i] <- b[i] * lr_boosted[i]
-
-
-      # Set stopping time and decision for boosted SPRT
-      if (prod(lr_boosted[1:i]) >= (1 / alpha) | prod(lr_boosted[1:i]) <= nu_t) {
-        stop_boosted[j] <- i
-        decision_boosted[j] <- (prod(lr_boosted[1:i]) >= (1 / alpha))
-        break
-      }
-    }
+    
+    
+    
     # Calculate the estimate for the type I error in each trial
     type_I_sprt[j] <- (1 / prod(lr[1:stop_sprt[j]])) * decision_sprt[j]
     type_I_sprt_cons[j] <- (1 / prod(lr[1:stop_sprt_cons[j]])) * decision_sprt_cons[j]
@@ -107,7 +117,9 @@ for (beta in betas) {
   mean_stop_sprt_ds[count] <- mean(stop_sprt_ds)
   mean_type_I_boosted[count] <- mean(type_I_boosted)
   mean_type_I_sprt[count] <- mean(type_I_sprt)
+  mean_type_I_sprt_cons[count] <- mean(type_I_sprt_cons)
   mean_type_I_sprt_ds[count] <- mean(type_I_sprt_ds)
+  mean_time_boosted[count] <- mean(time_boosted)
   count <- count + 1
 }
 
@@ -116,7 +128,7 @@ for (beta in betas) {
 results_df <- data.frame(
   idx = betas, mean_stop_boosted, mean_stop_sprt, power_boosted, power_sprt,
   mean_type_I_boosted, mean_type_I_sprt, mean_stop_sprt_cons, power_sprt_cons, mean_type_I_sprt_cons,
-  mean_stop_sprt_ds, power_sprt_ds, mean_type_I_sprt_ds
+  mean_stop_sprt_ds, power_sprt_ds, mean_type_I_sprt_ds, mean_time_boosted
 )
 save(results_df, file = "results/futility.rda")
 
@@ -138,6 +150,7 @@ mean_type_I_sprt <- rep(0, length(betas))
 mean_type_I_sprt_cons <- rep(0, length(betas))
 mean_type_I_sprt_ds <- rep(0, length(betas))
 mean_type_I_boosted <- rep(0, length(betas))
+mean_time_boosted <- rep(0, length(betas))
 
 # Set seed for reproducibility
 set.seed(123)
@@ -156,50 +169,59 @@ for (beta in betas) {
   type_I_sprt_cons <- rep(0, m) # Type I errors for a specific beta (SPRT cons. thresholds)
   type_I_sprt_ds <- rep(0, m) # Type I errors for a specific beta (SPRT Siegmund's thresholds)
   type_I_boosted <- rep(0, m) # Type I errors for a specific beta (boosted SPRT)
-
+  time_boosted <- rep(n, m) # Duration for a specific beta (boosted SPRT)
+  
   for (j in 1:m) {
     data <- rnorm(n, mean = mu_A, sd = 1) # Create normally distributed data with mean mu_A and variance 1
-
-    # SPRT
-    lr <- dnorm(data, mu_A, 1) / dnorm(data, mu_N, 1) # Likelihood ratio
+    
+    time_boosted[j] <- as.numeric(system.time({
+      # calculate likelihood ratio
+      lr <- dnorm(data, mu_A, 1) / dnorm(data, mu_N, 1) # Likelihood ratio
+      
+      # Parameters for boosted SPRT
+      b <- rep(1, n)
+      lr_boosted <- lr
+      lr_inv <- 1 / lr
+      lr_inv_boosted <- lr_inv
+      b_inv <- rep(1, n)
+      nu_t <- beta
+      
+      for (i in 1:n) {
+        # Calculate the boosting factors
+        b_full <- e_boosted_type2(prod(lr_boosted[1:(i - 1)]), prod(lr_inv_boosted[1:(i - 1)]), prod(b[1:(i - 1)]), prod(b_inv[1:(i - 1)]), alpha, beta, mu_A, -mu_A)
+        
+        b_inv[i] <- b_full[2]
+        b[i] <- b_full[1]
+        nu_t <- b_full[3]
+        
+        # Calculate boosted LR and boosted inverse LR
+        lr_inv_boosted[i] <- b_inv[i] * lr_inv_boosted[i]
+        lr_boosted[i] <- b[i] * lr_boosted[i]
+        
+        
+        # Set stopping time and decision for boosted SPRT
+        if (prod(lr_boosted[1:i]) >= (1 / alpha) | prod(lr_boosted[1:i]) <= nu_t) {
+          stop_boosted[j] <- i
+          decision_boosted[j] <- (prod(lr_boosted[1:i]) >= (1 / alpha))
+          break
+        }
+      }
+    })[3])
+    
+    # SPRTs
+    
     LR <- cumprod(lr) # Cumulative likelihood ratio
     stop_sprt[j] <- min(c(which(LR >= (1 - beta) / alpha | LR <= (beta) / (1 - alpha)), n)) # Calculate stop for SPRT
     decision_sprt[j] <- (LR[stop_sprt[j]] >= (1 - beta) / alpha) # Calculate decision for SPRT
-
+    
     stop_sprt_cons[j] <- min(c(which(LR >= 1 / alpha | LR <= beta), n)) # Calculate stop for cons. SPRT
     decision_sprt_cons[j] <- (LR[stop_sprt_cons[j]] >= 1 / alpha) # Calculate decision for cons. SPRT
-
+    
     stop_sprt_ds[j] <- min(c(which(LR >= (1 - beta) / (alpha * exp(mu_A * rho)) | LR <= exp(mu_A * rho) * beta / (1 - alpha)), n)) # Calculate stop for Siegmund's SPRT
     decision_sprt_ds[j] <- (LR[stop_sprt_ds[j]] >= (1 - beta) / (alpha * exp(mu_A * rho))) # Calculate decision for Siegmund's SPRT
-
-    # Parameters for boosted SPRT
-    b <- rep(1, n)
-    lr_boosted <- lr
-    lr_inv <- 1 / lr
-    lr_inv_boosted <- lr_inv
-    b_inv <- rep(1, n)
-    nu_t <- beta
-
-    for (i in 1:n) {
-      # Calculate the boosting factors
-      b_full <- e_boosted_type2(prod(lr_boosted[1:(i - 1)]), prod(lr_inv_boosted[1:(i - 1)]), prod(b[1:(i - 1)]), prod(b_inv[1:(i - 1)]), alpha, beta, mu_A, -mu_A)
-
-      b_inv[i] <- b_full[2]
-      b[i] <- b_full[1]
-      nu_t <- b_full[3]
-
-      # Calculate boosted LR and boosted inverse LR
-      lr_inv_boosted[i] <- b_inv[i] * lr_inv_boosted[i]
-      lr_boosted[i] <- b[i] * lr_boosted[i]
-
-
-      # Set stopping time and decision for boosted SPRT
-      if (prod(lr_boosted[1:i]) >= (1 / alpha) | prod(lr_boosted[1:i]) <= nu_t) {
-        stop_boosted[j] <- i
-        decision_boosted[j] <- (prod(lr_boosted[1:i]) >= (1 / alpha))
-        break
-      }
-    }
+    
+    
+    
     # Calculate the estimate for the type I error in each trial
     type_I_sprt[j] <- (1 / prod(lr[1:stop_sprt[j]])) * decision_sprt[j]
     type_I_sprt_cons[j] <- (1 / prod(lr[1:stop_sprt_cons[j]])) * decision_sprt_cons[j]
@@ -217,7 +239,9 @@ for (beta in betas) {
   mean_stop_sprt_ds[count] <- mean(stop_sprt_ds)
   mean_type_I_boosted[count] <- mean(type_I_boosted)
   mean_type_I_sprt[count] <- mean(type_I_sprt)
+  mean_type_I_sprt_cons[count] <- mean(type_I_sprt_cons)
   mean_type_I_sprt_ds[count] <- mean(type_I_sprt_ds)
+  mean_time_boosted[count] <- mean(time_boosted)
   count <- count + 1
 }
 
@@ -226,6 +250,6 @@ for (beta in betas) {
 results_df <- data.frame(
   idx = betas, mean_stop_boosted, mean_stop_sprt, power_boosted, power_sprt,
   mean_type_I_boosted, mean_type_I_sprt, mean_stop_sprt_cons, power_sprt_cons, mean_type_I_sprt_cons,
-  mean_stop_sprt_ds, power_sprt_ds, mean_type_I_sprt_ds
+  mean_stop_sprt_ds, power_sprt_ds, mean_type_I_sprt_ds, mean_time_boosted
 )
 save(results_df, file = "results/futility_alpha001.rda")
